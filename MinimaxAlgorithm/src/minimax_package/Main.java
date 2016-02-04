@@ -3,10 +3,13 @@ package minimax_package;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -187,11 +190,6 @@ public class Main {
 		perCust = 100 * wsc0 / Number_Customer;
 	}
 	
-	private Product listOfProducts() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	/**Playing the PDG*/
 	private void playGame(){
 		Math.random();
@@ -209,6 +207,91 @@ public class Main {
 
 
 	/*************************************** " AUXILIARY METHODS GENERATEINPUT()" ***************************************/
+	
+	/** Creating the attributes and the possible values of them */
+	private static void generateAttributeValor(List sheetData) {
+
+			int MIN_VAL = 1;
+			
+			double number_valors = 0.0;
+			for (int i = 4; i < sheetData.size(); i++) {
+				// System.out.println("Celda [" + i + ", 0]: ");
+
+				if (number_valors == 0) {
+					Cell cell = (Cell) ((List) sheetData.get(i)).get(0);
+					if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+						number_valors = cell.getNumericCellValue() + 1;
+						TotalAttributes.add(new Attribute("Attribute " + (TotalAttributes.size()+1), MIN_VAL, (int)number_valors-1));
+					} else if (cell.getCellType() == Cell.CELL_TYPE_STRING) {
+						if(cell.getRichStringCellValue().equals("MMM"))
+							break;
+					}
+				}
+				number_valors--;
+			}
+	}
+	
+	/**Creating different customer profiles*/
+	private static void generateCustomerProfiles(){
+		
+		//Generate 4 random Customer Profile
+		for(int i = 0; i < 4; i++){
+			ArrayList<Attribute> attrs = new ArrayList<>();
+			for(int j = 0; j < TotalAttributes.size(); j++){
+				Attribute attr = TotalAttributes.get(j);
+				ArrayList<Integer> scoreValues = new ArrayList<>();
+				for(int k = 0; k < attr.MAX; k++){
+					int random = (int)(attr.MAX * Math.random());
+					scoreValues.add(random);
+				}
+				attr.setScoreValues(scoreValues);
+				attrs.add(attr);
+			}
+			CustomerProfileList.add(new CustomerProfile(attrs));
+		}
+		
+		//Create 2 mutants for each basic profile
+		for(int i = 0; i < 4; i++){
+			CustomerProfileList.add(mutateCustomerProfile(CustomerProfileList.get(i)));
+			CustomerProfileList.add(mutateCustomerProfile(CustomerProfileList.get(i)));
+		}
+		
+		//Creating 4 isolated profiles
+		for(int i = 0; i < 4; i++){
+			ArrayList<Attribute> attrs = new ArrayList<>();
+			for(int j = 0; j < TotalAttributes.size(); j++){
+				Attribute attr = TotalAttributes.get(j);
+				ArrayList<Integer> scoreValues = new ArrayList<>();
+				for(int k = 0; k < attr.MAX; k++){
+					int random = (int)(attr.MAX * Math.random());
+					scoreValues.add(random);
+				}
+				attr.setScoreValues(scoreValues);
+				attrs.add(attr);
+			}
+			CustomerProfileList.add(new CustomerProfile(attrs));
+		}
+	}
+	
+	private static CustomerProfile mutateCustomerProfile(CustomerProfile customerProfile){
+		CustomerProfile mutant = new CustomerProfile(null);
+		ArrayList<Attribute> attrs = new ArrayList<>();
+		for(int i = 0; i < TotalAttributes.size(); i++){
+			Attribute attr = TotalAttributes.get(i);
+			ArrayList<Integer> scoreValues = new ArrayList<>();
+			for(int k = 0; k < attr.MAX; k++){
+				if(Math.random() < (MUT_PROB_CUSTOMER_PROFILE/ 100) ){
+					int random = (int)(attr.MAX * Math.random());
+					scoreValues.add(random);
+				}else
+					scoreValues.add(customerProfile.getScoreAttributes().get(i).getScoreValues().get(k));
+			}
+			attr.setScoreValues(scoreValues);
+			attrs.add(attr);	
+		}
+		mutant.setScoreAttributes(attrs);
+		return mutant;
+	}
 	
 	/**Dividing the customer profiles into sub-profiles
 	 * @throws Exception */
@@ -264,6 +347,59 @@ public class Main {
 		return value; //The attribute value chosen is equal to its index
 	}
 	
+	/** Creating a random product*/
+	private Product createRndProduct(ArrayList<Attribute> availableAttribute) {
+    	Product product = new Product(new HashMap<Attribute,Integer>());
+		int limit = (Number_Attributes * KNOWN_ATTRIBUTES) / 100;
+		int attrVal = 0;
+		
+		for(int i = 0; i < limit - 1; i++)
+		{
+			attrVal = (int) (TotalAttributes.get(i).getScoreValues().get((int) Math.random())); 
+			product.getAttributeValue().put(TotalAttributes.get(i), attrVal); 
+
+		}
+		
+		for(int i = limit; i < Number_Attributes - 1; i++)
+		{
+			boolean attrFound = false;
+			while(!attrFound)
+			{
+				attrVal = (int) ((int) TotalAttributes.get(i).getScoreValues().get((int) Math.random())); 
+			    if(availableAttribute.get(i).getAvailableValues().get(attrVal)) attrFound = true;
+			}
+			product.getAttributeValue().put(TotalAttributes.get(i), attrVal); 
+		}
+		return product;
+	}
+	
+    /**Creating a product near various customer profiles*/
+	private Product createNearProduct(ArrayList<Attribute> availableAttribute, int nearCustProfs) {
+		/*TODO: improve having into account the sub-profiles*/
+		Product product = new Product(new HashMap<Attribute,Integer>());
+		int limit = (Number_Attributes * KNOWN_ATTRIBUTES) / 100;
+		int attrVal = 0;
+		ArrayList<Integer> custProfsInd = new ArrayList<Integer>();
+		
+		for(int i = 1; i < nearCustProfs; i++)
+		{
+			custProfsInd.add((int) Math.floor(Number_CustomerProfile * Math.random()));
+		}
+		for(int i = 0; i < Number_Attributes - 1; i++)
+		{
+			attrVal = chooseAttribute(i, custProfsInd, availableAttribute);
+
+			product.getAttributeValue().put(TotalAttributes.get(i), attrVal);
+
+		}
+		return product;
+	}
+	
+	private int chooseAttribute(int i, ArrayList<Integer> custProfsInd, ArrayList<Attribute> availableAttribute) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 	/**Creating available attributes for the producer*/
 	private static ArrayList<Attribute> createAvailableAttributes()
 	{
@@ -425,7 +561,7 @@ public class Main {
 	/***Computing the weighted score of the producer
     prodInd is the index of the producer
 	 * @throws Exception **/
-	private int computeWSC(Product product, int prodInd) throws Exception {
+	private int computeWSC(LinkedList<Product> product, int prodInd) throws Exception {
 		int wsc = 0;
 		boolean isTheFavourite;
 		int meScore;
@@ -438,13 +574,13 @@ public class Main {
 			{
 				isTheFavourite = true;
 				numTies = 1;
-				meScore = scoreProduct(i,j,product);
+				meScore = scoreProduct(i,j, product.get(prodInd));
 				k = 0;
 				while(isTheFavourite && k < Number_Producers)
 				{
 					if(k != prodInd)
 					{
-						score = scoreProduct(i,j, Producers.get(k).product);
+						score = scoreProduct(i,j, product.get(k));
 						if(score > meScore) isTheFavourite = false;
 						else if(score == meScore) numTies += 1;
 					}
@@ -490,8 +626,74 @@ public class Main {
 		return emptyL;
 	}
 
+	/**Creates a deep copy of the products of each producer*/
+	private LinkedList<Product> listOfProducts() {
+		LinkedList<Product> products = new LinkedList<>();
+		for(int i = 0; i < Number_Producers - 1; i++)
+		{
+			products.add(Producers.get(i).getProduct().clone());
+		}
+		return products;
+	}
 
-	
+	/**We randomly select an attribute between those not already selected*/
+	private int selectAttribute(LinkedList<Integer> atSelSet)
+	{
+		int atSel = 0;
+		boolean alreadySel = true;
+		boolean found;
+		double rndVal;
+		double acumVal;
+		
+		while(alreadySel)
+		{
+			found = false;
+			atSel = 0;
+			rndVal = SumOfDev * Math.random();
+			acumVal = StdDevProd.get(atSel);
+			while(!found)
+			{
+				if(rndVal <= acumVal) found = true;
+				else{
+					atSel += 1;
+					acumVal += StdDevProd.get(atSel);
+				}
+			}
+			
+			if(!atSelSet.contains(atSel)) alreadySel = false;
+		}
+		return atSel;
+	}
+
+	/**Choose that movemet with the best alphabeta value*/
+	private StrAB bestMovement(LinkedList<StrAB> abL, int best)
+	{
+		StrAB ab = new StrAB(0,0,0); 
+		LinkedList<Integer> bestInd = new LinkedList<>();
+		for(int i = 0; i < abL.size() - 1; i++)
+		{
+			if(abL.get(i).getAlphaBeta() == best)
+			{
+				//With abL(i)
+				int alphaBeta = ab.getAlphaBeta();
+				alphaBeta = abL.get(i).getAlphaBeta();
+				int attrInd = ab.getAttrInd();
+				attrInd = abL.get(i).getAttrInd();
+				int attrVal = ab.getAttrVal();
+				attrVal = abL.get(i).getAttrVal();
+			}
+		}
+		/*
+		 * We choose one in a random way
+        'Dim rndInd As Integer = CInt(Math.Floor(bestInd.Count * Rnd()))
+        'With abL(bestInd(rndInd))
+        '    ab.AlphaBeta = .AlphaBeta
+        '    ab.AttrInd = .AttrInd
+        '    ab.AttrVal = .AttrVal
+        'End With*/
+		return ab;
+	}
+
 	/*************************************** " AUXILIARY METHODS STATISTICSPD()" ***************************************/
 
 	/**Computing the variance */
