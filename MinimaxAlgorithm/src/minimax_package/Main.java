@@ -343,6 +343,18 @@ public class Main {
 
 	/*************************************** " AUXILIARY METHODS PLAYGAME()" ***************************************/
 	
+	/**The producer mProducers(prodInd) changes mNAttrMof attributes of the product it produces to improve wsc. 
+	 * Depth is the depth of the tree computed*/
+	private void changeProduct(int prodInd)
+	{
+		int depth;
+		boolean maximizing = true;
+		if (prodInd == 0) depth = MAX_DEPTH_0;
+		else depth = MAX_DEPTH_1;
+		//StrAB ab = alphabetaInit(listOfProducts(), prodInd, depth, Integer.MinValue, Integer.MaxValue, maximizing);
+		//mProducers(prodInd).Product(ab.AttrInd) = ab.AttrVal
+	}
+
 	/**Computing the score of a product given the customer profile index
     custProfInd and the product*/
 	private int scoreProduct(int custProfInd, int custSubProfInd, Product product) throws Exception
@@ -399,6 +411,17 @@ public class Main {
 		return score;
 	}
 	
+	/**Computing the political party with the higher number of voters (excluding myPP)*/
+	private int maxCustGathPP()
+	{
+		int max = NumberCustGathered.get(1);
+		for(int i = 2; i < Number_Producers - 1; i++)
+		{
+			if(NumberCustGathered.get(i) > max) max = NumberCustGathered.get(i);
+		}
+		return max;
+	}
+	
 	/***Computing the weighted score of the producer
     prodInd is the index of the producer
 	 * @throws Exception **/
@@ -444,6 +467,30 @@ public class Main {
 
 		return wsc;
 	}
+	
+	/**Creates a deep copy of a List of Product*/
+	private LinkedList<Product> deepCopyList(LinkedList<Product> toBeCopied)
+	{
+		LinkedList<Product> c = new LinkedList<>();
+		for (int i = 0; i < toBeCopied.size() - 1; i++)
+		{
+			c.add(toBeCopied.get(i).clone());
+		}
+		return c;
+	}
+	
+	/**Creates an empty list of with list.size = size where all elements are 0*/
+	private LinkedList<Integer> emptyList(int size)
+	{
+		LinkedList<Integer> emptyL = new LinkedList<>();
+		for (int i = 0; i < size - 1; i++)
+		{
+			emptyL.add(0);
+		}
+		return emptyL;
+	}
+
+
 	
 	/*************************************** " AUXILIARY METHODS STATISTICSPD()" ***************************************/
 
