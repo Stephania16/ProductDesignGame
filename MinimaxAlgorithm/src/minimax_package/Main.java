@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -73,7 +72,7 @@ public class Main {
     /* STATISTICAL VARIABLES */
 	private LinkedList<Integer> Results;
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		// An excel file name. You can create a file name with a full path
 				// information.
 				String filename = "EncuestasCIS.xlsx";
@@ -103,7 +102,7 @@ public class Main {
 						List data = new ArrayList();
 						while (cells.hasNext()) {
 							XSSFCell cell = (XSSFCell) cells.next();
-							// System.out.println("A�adiendo Celda: " +
+							// System.out.println("Añadiendo Celda: " +
 							// cell.toString());
 							data.add(cell);
 						}
@@ -116,7 +115,14 @@ public class Main {
 						fis.close();
 					}
 				}
-
+				generateAttributeValor(sheetData);
+				generateCustomerProfiles();
+				divideCustomerProfile();
+				generateProducers();
+				showProducers();
+//				showAttributes();
+//				showAvailableAttributes(createAbailableAttributes());
+				//showExcelData(sheetData);
 	}
 	
 	/**Generating the input data
@@ -273,6 +279,89 @@ public class Main {
 		}
 	}
 	
+	/**Generating the producers*/
+	private static void generateProducers(){
+		Producers = new ArrayList<>();
+		CustGathered = new LinkedList<>();
+		NumberCustGathered = new LinkedList<>();
+		for (int i = 0; i < Number_Producers; i++){
+			Producer new_producer = new Producer();
+			new_producer.setAvailableAttribute(createAvailableAttributes());
+			new_producer.setProduct(createProduct(new_producer.getAvailableAttribute()));
+			Producers.add(new_producer);
+			CustGathered.add(new CustomerProfile(new_producer.getAvailableAttribute()));
+			NumberCustGathered.add(0);
+		}
+	}
+
+	private static Product createProduct(ArrayList<Attribute> availableAttrs){
+
+		Product product = new Product(new HashMap<Attribute,Integer>());
+		ArrayList<Integer> customNearProfs = new ArrayList<>();
+		for (int i = 0; i < NEAR_CUST_PROFS; i++){
+			customNearProfs.add((int) Math.floor(CustomerProfileList.size() * Math.random()));
+		}
+		
+		HashMap<Attribute, Integer> attrValues = new HashMap<>();
+		
+		for(int j = 0; j < TotalAttributes.size(); j++){
+			attrValues.put(TotalAttributes.get(j), chooseAttribute(j, customNearProfs, availableAttrs));
+		}
+		product.setAttributeValue(attrValues);
+		return product;
+	}
+	
+	private static void showAttributes(){
+		for(int k = 0; k < TotalAttributes.size(); k++){
+			System.out.println(TotalAttributes.get(k).getName());
+			System.out.println(TotalAttributes.get(k).getMIN());
+			System.out.println(TotalAttributes.get(k).getMAX());
+		}
+	}
+	
+	private static void showAvailableAttributes(ArrayList<Attribute> availableAttrs){
+		for(int k = 0; k < availableAttrs.size(); k++){
+			System.out.println(availableAttrs.get(k).getName());
+			System.out.println(availableAttrs.get(k).getMIN());
+			System.out.println(availableAttrs.get(k).getMAX());
+			for(int j = 0; j < availableAttrs.get(k).getAvailableValues().size(); j++){
+				System.out.println(availableAttrs.get(k).getAvailableValues().get(j));
+			}
+		}
+	}
+	
+	private static void showProducers(){
+		for(int i = 0; i < Producers.size(); i++){
+			Producer p = Producers.get(i);
+			System.out.println("PRODUCTOR " + (i+1));
+			for(int j = 0; j < TotalAttributes.size(); j++){
+				System.out.print(TotalAttributes.get(j).getName());
+				System.out.println(":  Value -> " + p.getProduct().getAttributeValue().get(TotalAttributes.get(j)));
+			}
+		}
+	}
+	
+	private static void showExcelData(List sheetData) {
+		// Iterates the data and print it out to the console.
+		for (int i = 0; i < sheetData.size(); i++) {
+			List list = (List) sheetData.get(i);
+			for (int j = 0; j < list.size(); j++) {
+				Cell cell = (Cell) list.get(j);
+				if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+					System.out.print(cell.getNumericCellValue());
+				} else if (cell.getCellType() == Cell.CELL_TYPE_STRING) {
+					System.out.print(cell.getRichStringCellValue());
+				} else if (cell.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
+					System.out.print(cell.getBooleanCellValue());
+				}
+				if (j < list.size() - 1) {
+					System.out.print(", ");
+				}
+			}
+			System.out.println("");
+		}
+	}
+	
 	private static CustomerProfile mutateCustomerProfile(CustomerProfile customerProfile){
 		CustomerProfile mutant = new CustomerProfile(null);
 		ArrayList<Attribute> attrs = new ArrayList<>();
@@ -395,9 +484,44 @@ public class Main {
 		return product;
 	}
 	
-	private int chooseAttribute(int i, ArrayList<Integer> custProfsInd, ArrayList<Attribute> availableAttribute) {
-		// TODO Auto-generated method stub
-		return 0;
+	/**Chosing an attribute near to the customer profiles given*/
+	private static int chooseAttribute(int attrInd, ArrayList<Integer> custProfInd, ArrayList<Attribute> availableAttrs)
+	{
+		int attrVal;
+		
+		ArrayList<Integer> possibleAttr = new ArrayList<Integer>();
+		
+		for(int i = 0; i < availableAttrs.size() - 1; i++)
+		{
+			/*We count the valoration of each selected profile for attribute attrInd value i*/
+			possibleAttr.add(0);
+			for(int j = 0; j < custProfInd.size() - 1; j++)
+			{
+				int possible = possibleAttr.get(i);
+				possible += CustomerProfileList.get(custProfInd.get(j)).getScoreAttributes().get(attrInd).getScoreValues().get(i);
+				
+			}
+		}
+		attrVal = getMaxAttrVal(attrInd, possibleAttr, availableAttrs);
+		
+		return attrVal;
+	}
+
+
+	/**Chosing the attribute with the maximum score for the customer profiles given*/
+	private static int getMaxAttrVal(int attrInd, ArrayList<Integer> possibleAttr, ArrayList<Attribute> availableAttr)
+	{
+		int attrVal = -1;
+		double max = -1;
+		for(int i = 0; i< possibleAttr.size() - 1; i++)
+		{
+			if(availableAttr.get(attrInd).getAvailableValues().get(i) && possibleAttr.get(i) > max) 
+			{
+				max = possibleAttr.get(i);
+				attrVal = i;
+			}
+		}
+		return attrVal;
 	}
 
 	/**Creating available attributes for the producer*/
@@ -666,10 +790,10 @@ public class Main {
 	}
 
 	/**Choose that movemet with the best alphabeta value*/
-	private StrAB bestMovement(LinkedList<StrAB> abL, int best)
+	private StrAB bestMovement(ArrayList<StrAB> abL, int best)
 	{
 		StrAB ab = new StrAB(0,0,0); 
-		LinkedList<Integer> bestInd = new LinkedList<>();
+		ArrayList<Integer> bestInd = new ArrayList<>();
 		for(int i = 0; i < abL.size() - 1; i++)
 		{
 			if(abL.get(i).getAlphaBeta() == best)
@@ -694,6 +818,178 @@ public class Main {
 		return ab;
 	}
 
+	/**Initialize the first level of the alphabeta() function
+	 * @throws Exception */
+	private StrAB alphabetaInit(LinkedList<Product> products, int prodInd, int depth, int alfa, int beta, boolean maximizingPlayer) throws Exception
+	{
+		ArrayList<StrAB> abL = new ArrayList<>();
+		StrAB ab;
+		boolean repeatedChild = false; //To prune repeated  childs
+		int atSel;
+		int nCustGathered;
+		LinkedList<Integer> atSelset = new LinkedList<>();
+		int numBranch = 0;
+		
+		//Now we cannot deploy all branches. We'll randomly choose those with higher variance value:
+		while(numBranch < NUM_BRANCHES)
+		{
+			//mNAttr - 1
+			atSel = selectAttribute(atSelset);
+			atSelset.add(atSel);
+			for(int atVal = 0; atVal < TotalAttributes.get(atSel).getAvailableValues().size() - 1; atVal++) //mAttributes(atSel) - 1
+			{
+				if(Producers.get(prodInd).getAvailableAttribute().get(atSel).getAvailableValues().get(atVal))
+				{
+					if(products.get(prodInd).getAttributeValue().get(atSel) != atVal || !repeatedChild) 
+					{
+						if(products.get(prodInd).getAttributeValue().get(atSel) == atVal) repeatedChild = true;
+						
+						//Computing child
+						numBranch++;
+						LinkedList<Product> child = deepCopyList(products);
+						int child_atSel = child.get(prodInd).getAttributeValue().get(atSel);
+						child_atSel = atVal;
+						
+						//Computing the number of customers gathered
+						nCustGathered = computeWSC(child, prodInd);
+						//The root node is maximizing
+						ab = new StrAB(0,0,0);
+						//With ab
+						int alphaBeta = ab.getAlphaBeta();
+						alphaBeta = alphabeta(child, nCustGathered, prodInd, (prodInd + 1) % Number_Producers, depth - 1, alfa, beta, false);
+						int attrInd = ab.getAttrInd();
+						attrInd = atSel;
+						int attrVal = ab.getAttrVal();
+						attrVal = atVal;
+						//end with
+						
+						abL.add(ab);
+						alfa = Math.max(alfa, ab.getAlphaBeta());
+					}
+				}
+				
+				if(numBranch == NUM_BRANCHES) System.exit(0);
+			}
+		}
+		
+		return bestMovement(abL, alfa);
+	}
+
+	/**Minimax algorithm with alpha–beta pruning:
+	 * @throws Exception */
+	private int alphabeta(LinkedList<Product> products, int nCustGathered, int prodInit, int prodInd, int depth, int alfa, int beta, boolean maximizingPlayer) throws Exception {
+		boolean exitWhile;
+		int wsc;
+		boolean repeatedChild = false; //To prune repeated  childs
+		int atSel;
+		LinkedList<Integer> atSelSet = new LinkedList<>();
+		int numBranch = 0;
+		//It is a terminal node:
+		if(depth == 0) return nCustGathered;
+		
+		// Now we cannot deploy all branches. We'll randomly choose those with higher variance value:
+		while(numBranch < NUM_BRANCHES)
+		{
+			atSel = selectAttribute(atSelSet);
+			atSelSet.add(atSel);
+			exitWhile = false;
+			for(int atVal = 0; atVal < TotalAttributes.get(atSel).getAvailableValues().size() - 1; atVal++) //mAttributes(atSel) - 1
+			{
+				if(Producers.get(prodInd).getAvailableAttribute().get(atSel).getAvailableValues().get(atVal))
+				{
+					if(products.get(prodInd).getAttributeValue().get(atSel) != atVal || !repeatedChild)
+					{
+						if(products.get(prodInd).getAttributeValue().get(atSel) == atVal) repeatedChild = true;
+						//Computing child
+						numBranch++;
+						LinkedList<Product> child = deepCopyList(products);
+						int child_atSel = child.get(prodInd).getAttributeValue().get(atSel);
+						child_atSel = atVal;
+						//Computing the number of customers gathered
+					     wsc = computeWSC(child, prodInit);
+						//Alpha-Beta pruning and recursive call
+					     if(maximizingPlayer)
+					     {
+					    	 alfa = Math.max(alfa, alphabeta(child, nCustGathered + wsc, prodInit, (prodInd + 1) % Number_Producers, depth - 1, alfa, beta, false));
+					    	 if(beta <= alfa)
+					    	 {
+					    		 exitWhile = true;
+					    		 System.exit(0); //β cut-off
+					    	 }
+					     }
+					     else
+					     {
+					    	 beta = Math.min(beta, alphabeta(child, nCustGathered + wsc, prodInit, (prodInd + 1) % Number_Producers, depth - 1, alfa, beta, true));
+					    	 if(beta <= alfa)
+					    	 {
+					    		 exitWhile = true;
+					    		 System.exit(0); //α cut-off
+					    	 }
+					     }
+					     
+					}
+				}
+				
+				if(numBranch == NUM_BRANCHES) System.exit(0);
+			}
+			if (exitWhile) System.exit(0);		
+		}
+			
+		//It is an intermediate node:
+		if(maximizingPlayer) return alfa;
+		else return beta;
+	}
+
+	/**Updating the customers gathered
+	 * @throws Exception */
+	private void updateCustGathered(int turn) throws Exception
+	{
+		for(int prodInd = 0; prodInd < Number_Producers; prodInd++)
+		{
+			int wsc = computeWSC(listOfProducts(), prodInd);
+			//TODO: OJO he cambiado todos los 2 (había 2 productores) por mNProd (puede haber errores)
+			if(CustGathered.get(prodInd).getScoreAttributes().size() == mPrevTurns * Number_Producers) //If the list is full
+			{
+				int number = NumberCustGathered.get(prodInd);
+				//number -= CustGathered.get(prodInd).getScoreAttributes().get(0).;
+				//CustGathered.get(prodInd).removeLast(); // We remove the oldest element
+			}
+			//CustGathered.get(prodInd).add(wsc);
+			int num = NumberCustGathered.get(prodInd);
+            num += wsc;
+            
+            writeResults(prodInd, turn, wsc);
+		}
+      /*  lstResults.Items.Add("* Difference: " & (mNCustGathered(0) - maxCustGathPP()).ToString)
+        lstResults.Items.Add("--------------------------" & _
+                             "--------------------------" & _
+                             "--------------------------")
+        lstResults.SelectedIndex = lstResults.Items.Count - 1
+        lstResults.Refresh()*/
+	}
+
+
+	private void writeResults(int prodInd, int turn, int wsc) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	
+	/*
+	' Writing the results of the turn
+    Private Sub writeResults(ByVal prodInd As Integer, ByVal turn As Integer, _
+                             ByVal wsc As Integer)
+        Dim mean As Double
+
+        lstResults.Items.Add("* Turn " & turn.ToString & " Producer " & prodInd.ToString)
+
+        mean = mNCustGathered(prodInd) / mCustGathered(prodInd).Count
+
+        lstResults.Items.Add("Accumulated = " & mNCustGathered(prodInd).ToString & _
+                             " Mean = " & Format(mean, "#0.00") & _
+                             " Last " & wsc.ToString)
+    End Sub*/
+
 	/*************************************** " AUXILIARY METHODS STATISTICSPD()" ***************************************/
 
 	/**Computing the variance */
@@ -704,5 +1000,6 @@ public class Main {
 		}
 		return (sqrSum/NUM_EXECUTIONS);
 	}
+
 
 }
