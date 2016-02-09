@@ -1,4 +1,4 @@
-package minimax_package;
+package minimax;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -142,7 +142,7 @@ public class Main {
 		//genAttrVal();
 		//genCustomerProfiles();
        // genCustomerProfilesNum();
-        divideCustomerProfile();
+       // divideCustomerProfile();
        // genProducers();
 	}
 	
@@ -196,15 +196,16 @@ public class Main {
 		perCust = 100 * wsc0 / Number_Customer;
 	}
 	
-	/**Playing the PDG*/
-	private void playGame(){
+	/**Playing the PDG
+	 * @throws Exception */
+	private void playGame() throws Exception{
 		Math.random();
 		for(int i = 1; i < mNTurns; i++)
 		{
 			for(int prodInd = 0; prodInd < Number_Producers - 1; prodInd++)
 			{
-				//changeProduct(prodInd);
-				//updateCustGathered(i);
+				changeProduct(prodInd);
+				updateCustGathered(i);
 			}
 		}
 		
@@ -604,15 +605,18 @@ public class Main {
 	/*************************************** " AUXILIARY METHODS PLAYGAME()" ***************************************/
 	
 	/**The producer mProducers(prodInd) changes mNAttrMof attributes of the product it produces to improve wsc. 
-	 * Depth is the depth of the tree computed*/
-	private void changeProduct(int prodInd)
+	 * Depth is the depth of the tree computed
+	 * @throws Exception */
+	private void changeProduct(int prodInd) throws Exception
 	{
 		int depth;
 		boolean maximizing = true;
 		if (prodInd == 0) depth = MAX_DEPTH_0;
 		else depth = MAX_DEPTH_1;
-		//StrAB ab = alphabetaInit(listOfProducts(), prodInd, depth, Integer.MinValue, Integer.MaxValue, maximizing);
+		StrAB ab = alphabetaInit(listOfProducts(), prodInd, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
 		//mProducers(prodInd).Product(ab.AttrInd) = ab.AttrVal
+		int prod = Producers.get(prodInd).getProduct().getAttributeValue().get(ab.getAttrInd());
+		prod = ab.getAttrVal();
 	}
 
 	/**Computing the score of a product given the customer profile index

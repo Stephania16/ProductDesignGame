@@ -1,4 +1,4 @@
-package minimax_package;
+package minimax;
 
 public class StrAB {
 	 public int AlphaBeta;
