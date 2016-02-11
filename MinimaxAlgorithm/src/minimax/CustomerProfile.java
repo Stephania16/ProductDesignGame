@@ -5,6 +5,7 @@ import java.util.ArrayList;
 public class CustomerProfile {
 	
 	private ArrayList<Attribute> scoreAttributes;
+	private int number_customer;
 
 	public CustomerProfile(ArrayList<Attribute> scoreAttributes) {
 		super();
@@ -19,4 +20,8 @@ public class CustomerProfile {
 		this.scoreAttributes = scoreAttributes;
 	}
 	
+	public int getNumberCustomer(){
+		return number_customer;
+	}
+
 }

@@ -66,7 +66,7 @@ public class Main {
     private static LinkedList<CustomerProfile> CustomerProfileListAux = new LinkedList<>();
     private static LinkedList<Integer> NumberCustomerProfile = new LinkedList<>(); /*Number of customers of each customer profile*/
     
-    private static LinkedList<CustomerProfile> CustGathered = new LinkedList<>(); /*Customers gathered by each producer during the previous mPrevTurns turns*/
+    private static LinkedList<Producer> CustGathered = new LinkedList<>(); /*Customers gathered by each producer during the previous mPrevTurns turns*/
     private static LinkedList<Integer> NumberCustGathered = new LinkedList<>(); /*Number of customers gathered by each producer during the previous mPrevTurns turns*/
 
     /* STATISTICAL VARIABLES */
@@ -290,7 +290,7 @@ public class Main {
 			new_producer.setAvailableAttribute(createAvailableAttributes());
 			new_producer.setProduct(createProduct(new_producer.getAvailableAttribute()));
 			Producers.add(new_producer);
-			CustGathered.add(new CustomerProfile(new_producer.getAvailableAttribute()));
+			CustGathered.add(new_producer);
 			NumberCustGathered.add(0);
 		}
 	}
@@ -614,8 +614,7 @@ public class Main {
 		if (prodInd == 0) depth = MAX_DEPTH_0;
 		else depth = MAX_DEPTH_1;
 		StrAB ab = alphabetaInit(listOfProducts(), prodInd, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
-		//mProducers(prodInd).Product(ab.AttrInd) = ab.AttrVal
-		int prod = Producers.get(prodInd).getProduct().getAttributeValue().get(ab.getAttrInd());
+		int prod = Producers.get(prodInd).getProduct().getAttributeValue().get(ab.getAttrInd()); //mProducers(prodInd).Product(ab.AttrInd) = ab.AttrVal
 		prod = ab.getAttrVal();
 	}
 
@@ -952,13 +951,14 @@ public class Main {
 		{
 			int wsc = computeWSC(listOfProducts(), prodInd);
 			//TODO: OJO he cambiado todos los 2 (había 2 productores) por mNProd (puede haber errores)
-			if(CustGathered.get(prodInd).getScoreAttributes().size() == mPrevTurns * Number_Producers) //If the list is full
+			if(CustGathered.get(prodInd).getCustomerGathered().size() == mPrevTurns * Number_Producers) //If the list is full
 			{
 				int number = NumberCustGathered.get(prodInd);
-				//number -= CustGathered.get(prodInd).getScoreAttributes().get(0).;
-				//CustGathered.get(prodInd).removeLast(); // We remove the oldest element
+				number -= CustGathered.get(prodInd).getCustomerGathered().get(0).getNumberCustomer();
+				CustGathered.get(prodInd).getCustomerGathered().remove(0); // We remove the oldest element
 			}
 			//CustGathered.get(prodInd).add(wsc);
+			//CustGathered.get(prodInd).getCustomerGathered();
 			int num = NumberCustGathered.get(prodInd);
             num += wsc;
             
@@ -972,27 +972,13 @@ public class Main {
         lstResults.Refresh()*/
 	}
 
-
+	/**Writing the results of the turn*/
 	private void writeResults(int prodInd, int turn, int wsc) {
-		// TODO Auto-generated method stub
-		
+		double mean;
+		System.out.println("Turn:" + turn + "Producer:"+ prodInd);
+		mean = NumberCustGathered.get(prodInd) / CustGathered.get(prodInd).getCustomerGathered().size();
+		System.out.println("Accumulated:" + NumberCustGathered.get(prodInd) + "Mean:"+ mean + "Last:" + wsc);
 	}
-	
-	
-	/*
-	' Writing the results of the turn
-    Private Sub writeResults(ByVal prodInd As Integer, ByVal turn As Integer, _
-                             ByVal wsc As Integer)
-        Dim mean As Double
-
-        lstResults.Items.Add("* Turn " & turn.ToString & " Producer " & prodInd.ToString)
-
-        mean = mNCustGathered(prodInd) / mCustGathered(prodInd).Count
-
-        lstResults.Items.Add("Accumulated = " & mNCustGathered(prodInd).ToString & _
-                             " Mean = " & Format(mean, "#0.00") & _
-                             " Last " & wsc.ToString)
-    End Sub*/
 
 	/*************************************** " AUXILIARY METHODS STATISTICSPD()" ***************************************/
 
